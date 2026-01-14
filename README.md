@@ -1,36 +1,53 @@
 # mcp-api-client
 
-An MCP server that enables LLMs to make HTTP requests to external APIs. Built with [FastMCP](https://github.com/jlowin/fastmcp) and [httpx](https://www.python-httpx.org/).
+[![CI](https://github.com/etaaa/mcp-api-client/actions/workflows/python-package.yml/badge.svg)](https://github.com/etaaa/mcp-api-client/actions/workflows/python-package.yml)
+
+A lightweight MCP server that gives LLMs the ability to make HTTP requests. Perfect for local development, testing API endpoints, and integrating with web services. Built with [FastMCP](https://github.com/jlowin/fastmcp) and [httpx](https://www.python-httpx.org/).
+
+## Use Cases
+
+- **Local development**: Test your API endpoints directly through your LLM assistant
+- **API debugging**: Inspect responses, headers, and status codes from any endpoint
+- **Rapid prototyping**: Quickly interact with REST APIs without leaving your editor
+- **Integration testing**: Verify API behavior during development
 
 ## What is MCP?
 
-Model Context Protocol (MCP) is a standard for connecting LLMs to external tools and data sources. This server exposes an `http_request` tool that allows LLMs to fetch data from APIs, submit forms, and interact with web services.
+Model Context Protocol (MCP) is a standard for connecting LLMs to external tools and data sources. This server exposes an `http_request` tool that allows LLMs to call APIs, test endpoints, and interact with web services, including your local dev server.
 
 ## Installation
+
+**Requirements:** Python 3.10 or higher
 
 Clone the repository and install:
 
 ```bash
-git clone https://github.com/your-username/mcp-api-client.git
+git clone https://github.com/etaaa/mcp-api-client.git
 cd mcp-api-client
 pip install .
 ```
 
 ## Usage
 
-Add the server to your MCP client configuration:
+First, find where `mcp-api-client` was installed:
+
+```bash
+which mcp-api-client
+```
+
+Add the server to your MCP client configuration using the **full path**:
 
 ```json
 {
   "mcpServers": {
     "api-client": {
-      "command": "mcp-api-client"
+      "command": "/full/path/to/mcp-api-client"
     }
   }
 }
 ```
 
-Or run directly from the command line:
+To run directly from the command line:
 
 ```bash
 mcp-api-client
@@ -78,20 +95,34 @@ Error types: `timeout`, `connection`, `request`
 
 ## Examples
 
-Fetch JSON from an API:
+Test a local endpoint:
+
+```
+method: GET
+url: http://localhost:3000/api/users
+```
+
+Check your local server's health endpoint:
+
+```
+method: GET
+url: http://localhost:8080/health
+```
+
+Post data to a local API:
+
+```
+method: POST
+url: http://localhost:3000/api/users
+body: {"name": "test", "email": "test@example.com"}
+headers: {"Content-Type": "application/json"}
+```
+
+Call an external API:
 
 ```
 method: GET
 url: https://api.github.com/users/octocat
-```
-
-Post data with custom headers:
-
-```
-method: POST
-url: https://httpbin.org/post
-body: {"name": "test", "value": 123}
-headers: {"Authorization": "Bearer token123"}
 ```
 
 ## Testing
@@ -104,6 +135,17 @@ pytest
 ```
 
 Tests run against [httpbin.org](https://httpbin.org) to verify request handling.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/new-feature`)
+3. Run tests (`pytest`)
+4. Commit your changes (`git commit -m 'feat: add new feature'`)
+5. Push to the branch (`git push origin feature/new-feature`)
+6. Open a Pull Request
 
 ## License
 
