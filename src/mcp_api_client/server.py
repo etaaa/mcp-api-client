@@ -1,5 +1,3 @@
-# MCP server for HTTP requests
-
 from typing import Annotated, Any
 
 import httpx
@@ -15,10 +13,10 @@ async def make_request(
     headers: dict[str, str] | None = None,
     params: dict[str, str] | None = None,
     timeout: float = 30.0,
+    include_headers: bool = False,
 ) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            # use json param for structured data, content for raw strings
             response = await client.request(
                 method=method.upper(),
                 url=url,
@@ -28,7 +26,7 @@ async def make_request(
                 content=body if isinstance(body, str) else None,
             )
 
-        # attempt JSON parsing if content-type indicates JSON
+        # parse json or text based on content-type
         content_type = response.headers.get("content-type", "")
         if response.content and "application/json" in content_type:
             try:
@@ -38,13 +36,16 @@ async def make_request(
         else:
             body_content = response.text or None
 
-        return {
-            "status_code": response.status_code,
-            "headers": dict(response.headers),
+        result = {
+            "status": response.status_code,
             "body": body_content,
-            "elapsed_ms": round(response.elapsed.total_seconds() * 1000, 2),
-            "url": str(response.url),
         }
+
+        # include headers only if requested to save tokens
+        if include_headers:
+            result["headers"] = dict(response.headers)
+
+        return result
 
     except httpx.TimeoutException:
         return {"error": "timeout", "message": f"Timed out after {timeout}s"}
@@ -62,9 +63,98 @@ async def http_request(
     headers: Annotated[dict[str, str] | None, "HTTP headers"] = None,
     params: Annotated[dict[str, str] | None, "Query parameters"] = None,
     timeout: Annotated[float, "Timeout in seconds"] = 30.0,
+    include_headers: Annotated[bool,
+                               "Include response headers in output"] = False,
 ) -> dict[str, Any]:
-    # exposed as MCP tool for external clients
-    return await make_request(method, url, body, headers, params, timeout)
+    """Make a single HTTP request. Returns status and body only by default."""
+    return await make_request(method, url, body, headers, params, timeout, include_headers)
+
+
+async def batch_request(
+    requests: list[dict[str, Any]],
+    timeout: float = 30.0,
+    include_headers: bool = False,
+) -> list[dict[str, Any]]:
+    results = []
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for req in requests:
+            try:
+                method = req.get("method", "GET")
+                url = req.get("url")
+                if not url:
+                    results.append({"error": "invalid_request",
+                                   "message": "Missing 'url' field"})
+                    continue
+
+                body = req.get("body")
+                headers = req.get("headers")
+                params = req.get("params")
+
+                response = await client.request(
+                    method=method.upper(),
+                    url=url,
+                    headers=headers,
+                    params=params,
+                    json=body if isinstance(body, (dict, list)) else None,
+                    content=body if isinstance(body, str) else None,
+                )
+
+                # parse json or text response
+                content_type = response.headers.get("content-type", "")
+                if response.content and "application/json" in content_type:
+                    try:
+                        body_content = response.json()
+                    except ValueError:
+                        body_content = response.text
+                else:
+                    body_content = response.text or None
+
+                result = {
+                    "status": response.status_code,
+                    "body": body_content,
+                }
+
+                if include_headers:
+                    result["headers"] = dict(response.headers)
+
+                results.append(result)
+
+            except httpx.TimeoutException:
+                results.append(
+                    {"error": "timeout", "message": f"Timed out after {timeout}s"})
+            except httpx.ConnectError as e:
+                results.append({"error": "connection", "message": str(e)})
+            except httpx.RequestError as e:
+                results.append({"error": "request", "message": str(e)})
+            except Exception as e:
+                results.append({"error": "unknown", "message": str(e)})
+
+    return results
+
+
+@mcp.tool
+async def http_batch_request(
+    requests: Annotated[
+        list[dict[str, Any]],
+        "List of requests. Each dict must have 'method' and 'url', optionally 'body', 'headers', 'params'"
+    ],
+    timeout: Annotated[float, "Timeout in seconds for each request"] = 30.0,
+    include_headers: Annotated[bool,
+                               "Include response headers in output"] = False,
+) -> list[dict[str, Any]]:
+    """Execute multiple HTTP requests efficiently in a single call.
+
+    Reduces token usage by batching requests and minimizing response overhead.
+    Each request in the list can have: method, url, body, headers, params.
+
+    Example:
+        requests = [
+            {"method": "GET", "url": "https://api.example.com/users"},
+            {"method": "POST", "url": "https://api.example.com/users", "body": {"name": "Test"}},
+            {"method": "GET", "url": "https://api.example.com/health"}
+        ]
+    """
+    return await batch_request(requests, timeout, include_headers)
 
 
 def main() -> None:
