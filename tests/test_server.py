@@ -55,14 +55,14 @@ async def test_query_params():
 
 @pytest.mark.asyncio
 async def test_timeout_error():
-    # force timeout with delay endpoint
+    # Force timeout
     result = await make_request("GET", "https://httpbin.org/delay/5", timeout=1.0)
     assert result["error"] == "timeout"
 
 
 @pytest.mark.asyncio
 async def test_connection_error():
-    # trigger connection error with non-existent port
+    # Trigger connection error
     result = await make_request("GET", "http://localhost:59999", timeout=2.0)
     assert result["error"] == "connection"
 
@@ -99,10 +99,8 @@ async def test_batch_request_multiple_endpoints():
 @pytest.mark.asyncio
 async def test_batch_request_with_params():
     requests = [
-        {"method": "GET", "url": "https://httpbin.org/get",
-            "params": {"key1": "val1"}},
-        {"method": "GET", "url": "https://httpbin.org/get",
-            "params": {"key2": "val2"}},
+        {"method": "GET", "url": "https://httpbin.org/get", "params": {"key1": "val1"}},
+        {"method": "GET", "url": "https://httpbin.org/get", "params": {"key2": "val2"}},
     ]
     results = await batch_request(requests)
 
