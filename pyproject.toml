@@ -9,6 +9,9 @@ description = "MCP server for making HTTP requests"
 requires-python = ">=3.10"
 dependencies = ["fastmcp>=2.0.0", "httpx>=0.27.0"]
 
+[project.optional-dependencies]
+test = ["pytest", "pytest-asyncio"]
+
 [project.scripts]
 mcp-api-client = "mcp_api_client.server:main"
 

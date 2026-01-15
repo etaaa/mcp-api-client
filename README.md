@@ -2,24 +2,22 @@
 
 [![CI](https://github.com/etaaa/mcp-api-client/actions/workflows/python-package.yml/badge.svg)](https://github.com/etaaa/mcp-api-client/actions/workflows/python-package.yml)
 
-A lightweight MCP server that gives LLMs the ability to make HTTP requests. Perfect for local development, testing API endpoints, and integrating with web services. Built with [FastMCP](https://github.com/jlowin/fastmcp) and [httpx](https://www.python-httpx.org/).
+**Postman for LLMs.** A specialized MCP server designed for rapid REST API testing and exploration. Instead of writing boilerplate test code, your LLM assistant can now directly interact with, debug, and validate your endpoints in real-time.
 
-## Use Cases
+Built with [FastMCP](https://github.com/jlowin/fastmcp) and [httpx](https://www.python-httpx.org/).
 
-- **Local development**: Test your API endpoints directly through your LLM assistant
-- **API debugging**: Inspect responses, headers, and status codes from any endpoint
-- **Rapid prototyping**: Quickly interact with REST APIs without leaving your editor
-- **Integration testing**: Verify API behavior during development
+## Why `mcp-api-client`?
 
-## What is MCP?
+Traditional API testing requires writing scripts or switching to GUI tools like Postman. This server brings that power directly into your AI-assisted development workflow:
 
-Model Context Protocol (MCP) is a standard for connecting LLMs to external tools and data sources. This server exposes an `http_request` tool that allows LLMs to call APIs, test endpoints, and interact with web services, including your local dev server.
+- **LLM-Native Testing**: Quickly pre-test endpoints using natural language without writing a single line of test code.
+- **Zero-Boilerplate Prototyping**: Interact with new APIs instantly to understand their behavior.
+- **Local Dev Companion**: Perfect for testing your local development server (`localhost`) during the build phase.
+- **Deep Inspection**: Get full visibility into status codes, headers, and structured JSON responses.
 
 ## Installation
 
-**Requirements:** Python 3.10 or higher
-
-Clone the repository and install:
+**Requirements:** Python 3.10+
 
 ```bash
 git clone https://github.com/etaaa/mcp-api-client.git
@@ -27,126 +25,67 @@ cd mcp-api-client
 pip install .
 ```
 
-## Usage
+## Setup
 
-First, find where `mcp-api-client` was installed:
+1. Find the installed path:
+   ```bash
+   which mcp-api-client
+   ```
 
-```bash
-which mcp-api-client
-```
+2. Add the server to your MCP client configuration (e.g., Claude Desktop):
+   ```json
+   {
+     "mcpServers": {
+       "api-client": {
+         "command": "/full/path/to/mcp-api-client"
+       }
+     }
+   }
+   ```
 
-Add the server to your MCP client configuration using the **full path**:
+## Tool Reference: `http_request`
 
-```json
-{
-  "mcpServers": {
-    "api-client": {
-      "command": "/full/path/to/mcp-api-client"
-    }
-  }
-}
-```
+The primary tool for making arbitrary HTTP requests.
 
-To run directly from the command line:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `method` | string | Yes | HTTP method (GET, POST, PUT, etc.) |
+| `url` | string | Yes | The target endpoint URL |
+| `body` | any | No | Request body (auto-serialized as JSON if dict/list) |
+| `headers` | dict | No | Custom headers |
+| `params` | dict | No | Query parameters |
+| `timeout` | float | No | Request timeout (default: 30s) |
 
-```bash
-mcp-api-client
-```
+## Agent Automation (Skills)
 
-## Tool Reference
-
-### http_request
-
-Makes an HTTP request and returns the response.
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| method | string | yes | HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD) |
-| url | string | yes | target URL |
-| body | dict, list, or string | no | request body (automatically serialized as JSON for dict/list) |
-| headers | dict | no | custom HTTP headers |
-| params | dict | no | query parameters |
-| timeout | float | no | request timeout in seconds (default: 30) |
-
-**Response:**
-
-```json
-{
-  "status_code": 200,
-  "headers": { "content-type": "application/json", ... },
-  "body": { ... },
-  "elapsed_ms": 123.45,
-  "url": "https://api.example.com/data"
-}
-```
-
-On error, returns:
-
-```json
-{
-  "error": "timeout",
-  "message": "Timed out after 30s"
-}
-```
-
-Error types: `timeout`, `connection`, `request`
+To make testing even more convenient, we've included a **Skill** definition. You can copy the contents of [`skills/mcp-api-client.md`](./skills/mcp-api-client.md) into your own AI agent's codebase (as a "Skill" or "Instruction") to automatically teach it how to use this server for systematic API verification.
 
 ## Examples
 
-Test a local endpoint:
-
-```
+**Check a local health endpoint:**
+```text
 method: GET
-url: http://localhost:3000/api/users
+url: http://localhost:8000/health
 ```
 
-Check your local server's health endpoint:
-
-```
-method: GET
-url: http://localhost:8080/health
-```
-
-Post data to a local API:
-
-```
+**Validate a POST request with JSON:**
+```text
 method: POST
 url: http://localhost:3000/api/users
-body: {"name": "test", "email": "test@example.com"}
+body: {"name": "Test User", "role": "admin"}
 headers: {"Content-Type": "application/json"}
 ```
 
-Call an external API:
-
-```
-method: GET
-url: https://api.github.com/users/octocat
-```
-
-## Testing
-
-Install test dependencies and run the test suite:
+## Testing & Contributing
 
 ```bash
 pip install pytest pytest-asyncio
 pytest
 ```
 
-Tests run against [httpbin.org](https://httpbin.org) to verify request handling.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/new-feature`)
-3. Run tests (`pytest`)
-4. Commit your changes (`git commit -m 'feat: add new feature'`)
-5. Push to the branch (`git push origin feature/new-feature`)
-6. Open a Pull Request
+Contributions are welcome! If you find a bug or have a feature request, please open an issue or submit a PR.
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
