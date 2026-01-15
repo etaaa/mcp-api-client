@@ -41,9 +41,7 @@ async def make_request(
         response_headers = dict(response.headers) if include_headers else None
 
         result = Response(
-            status=response.status_code,
-            body=body_content,
-            headers=response_headers
+            status=response.status_code, body=body_content, headers=response_headers
         )
 
         logger.debug(
@@ -53,7 +51,10 @@ async def make_request(
 
     except httpx.TimeoutException:
         logger.warning(f"Request timeout: {method} {url}")
-        return Response(status=408, body={"error": "timeout", "message": f"Timed out after {timeout}s"})
+        return Response(
+            status=408,
+            body={"error": "timeout", "message": f"Timed out after {timeout}s"},
+        )
     except httpx.ConnectError as e:
         logger.warning(f"Connection error: {method} {url} - {e}")
         return Response(status=503, body={"error": "connection", "message": str(e)})
@@ -76,7 +77,7 @@ async def batch_request(
     for req in requests:
         # Pydantic URL is strictly typed, convert to string
         url_str = str(req.url)
-        
+
         tasks.append(
             make_request(
                 method=req.method,
