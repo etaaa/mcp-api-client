@@ -2,6 +2,7 @@ from typing import Any
 import asyncio
 import httpx
 import logging
+from mcp_api_client.types import Request, Response
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ async def make_request(
     params: dict[str, str] | None = None,
     timeout: float = 30.0,
     include_headers: bool = False,
-) -> dict[str, Any]:
+) -> Response:
     logger.debug(f"Making request: {method} {url}")
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -37,14 +38,13 @@ async def make_request(
         else:
             body_content = response.text or None
 
-        result = {
-            "status": response.status_code,
-            "body": body_content,
-        }
+        response_headers = dict(response.headers) if include_headers else None
 
-        # Add headers if requested
-        if include_headers:
-            result["headers"] = dict(response.headers)
+        result = Response(
+            status=response.status_code,
+            body=body_content,
+            headers=response_headers
+        )
 
         logger.debug(
             f"Request completed: {method} {url} - Status: {response.status_code}"
@@ -53,48 +53,37 @@ async def make_request(
 
     except httpx.TimeoutException:
         logger.warning(f"Request timeout: {method} {url}")
-        return {"error": "timeout", "message": f"Timed out after {timeout}s"}
+        return Response(status=408, body={"error": "timeout", "message": f"Timed out after {timeout}s"})
     except httpx.ConnectError as e:
         logger.warning(f"Connection error: {method} {url} - {e}")
-        return {"error": "connection", "message": str(e)}
+        return Response(status=503, body={"error": "connection", "message": str(e)})
     except httpx.RequestError as e:
         logger.warning(f"Request error: {method} {url} - {e}")
-        return {"error": "request", "message": str(e)}
+        return Response(status=500, body={"error": "request", "message": str(e)})
     except Exception as e:
         logger.exception(f"Unexpected error: {method} {url}")
-        return {"error": "unknown", "message": str(e)}
+        return Response(status=500, body={"error": "unknown", "message": str(e)})
 
 
 async def batch_request(
-    requests: list[dict[str, Any]],
+    requests: list[Request],
     timeout: float = 30.0,
     include_headers: bool = False,
-) -> list[dict[str, Any]]:
+) -> list[Response]:
     logger.info(f"Starting batch request with {len(requests)} requests")
 
     tasks = []
     for req in requests:
-        url = req.get("url")
-        if not url:
-            # Return error for missing url
-            async def invalid_req():
-                return {"error": "invalid_request", "message": "Missing 'url' field"}
-
-            tasks.append(invalid_req())
-            continue
-
-        method = req.get("method", "GET")
-        body = req.get("body")
-        headers = req.get("headers")
-        params = req.get("params")
-
+        # Pydantic URL is strictly typed, convert to string
+        url_str = str(req.url)
+        
         tasks.append(
             make_request(
-                method=method,
-                url=url,
-                body=body,
-                headers=headers,
-                params=params,
+                method=req.method,
+                url=url_str,
+                body=req.body,
+                headers=req.headers,
+                params=req.params,
                 timeout=timeout,
                 include_headers=include_headers,
             )

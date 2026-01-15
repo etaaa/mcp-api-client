@@ -110,13 +110,13 @@ requests:
     url: http://localhost:3000/api/users
 ```
 
-## Resource Efficiency Features
+## Agent Skills
 
-1. **Minimal Response Format**: Returns only `status` and `body` by default
-2. **Optional Headers**: Headers excluded unless explicitly requested with `include_headers=true`
-3. **No Timing Data**: Removed `elapsed_ms` to reduce token usage
-4. **Batch Operations**: Test multiple endpoints in one call instead of multiple tool invocations
-5. **Smart Body Parsing**: Automatically detects and parses JSON responses
+This project includes a pre-written "skill" that instructs LLM agents on how to best use this tool.
+
+**Usage:**
+1. Copy `skills/mcp-api.client.md` to your project's agent configuration (e.g., `.cursor/skills/` or similar).
+2. Your agent will now understand when to use this server (e.g., for verifying API changes).
 
 ## Testing & Contributing
 
