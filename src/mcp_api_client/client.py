@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 async def make_request(
     method: str,
     url: str,
@@ -45,7 +46,9 @@ async def make_request(
         if include_headers:
             result["headers"] = dict(response.headers)
 
-        logger.debug(f"Request completed: {method} {url} - Status: {response.status_code}")
+        logger.debug(
+            f"Request completed: {method} {url} - Status: {response.status_code}"
+        )
         return result
 
     except httpx.TimeoutException:
@@ -68,14 +71,15 @@ async def batch_request(
     include_headers: bool = False,
 ) -> list[dict[str, Any]]:
     logger.info(f"Starting batch request with {len(requests)} requests")
-    
+
     tasks = []
     for req in requests:
         url = req.get("url")
         if not url:
             # Return error for missing url
             async def invalid_req():
-                 return {"error": "invalid_request", "message": "Missing 'url' field"}
+                return {"error": "invalid_request", "message": "Missing 'url' field"}
+
             tasks.append(invalid_req())
             continue
 
@@ -95,7 +99,7 @@ async def batch_request(
                 include_headers=include_headers,
             )
         )
-    
+
     results = await asyncio.gather(*tasks)
     logger.info("Batch request completed")
     return list(results)
