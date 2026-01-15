@@ -1,4 +1,3 @@
-from typing import Any
 import asyncio
 import httpx
 import logging
